@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 可爱AI聊天助手 🌸</title>
+    <style>
+        /* 全局样式重置 & 基础变量 */
+        :root {
+            /* 粉色可爱主题色 */
+            --bg-primary: linear-gradient(135deg, #fff0f5 0%, #fef7fb 100%);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-primary: #5a4b60;
+            --text-secondary: #9d8e99;
+            --accent-color: #ff69b4;
+            --accent-light: #ff91c2;
+            --accent-gradient: linear-gradient(90deg, #ff69b4, #ff85c1);
+            --border-color: rgba(255, 105, 180, 0.2);
+            --user-msg-bg: linear-gradient(90deg, #ff69b4, #ff85c1);
+            --ai-msg-bg: #ffffff;
+            --shadow: 0 8px 24px rgba(255, 105, 180, 0.1);
+            --radius: 20px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --cute-shadow: 0 4px 12px rgba(255, 105, 180, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", "PingFang SC", "SimHei", sans-serif;
+        }
+
+        body {
+            background: var(--bg-primary);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-primary);
+            transition: var(--transition);
+            overflow-x: hidden;
+        }
+
+        /* 装饰元素 */
+        .decor {
+            position: fixed;
+            z-index: -1;
+            opacity: 0.2;
+        }
+
+        .decor1 {
+            top: 10%;
+            left: 5%;
+            font-size: 80px;
+            color: var(--accent-color);
+            transform: rotate(-15deg);
+        }
+
+        .decor2 {
+            bottom: 10%;
+            right: 5%;
+            font-size: 100px;
+            color: var(--accent-color);
+            transform: rotate(20deg);
+        }
+
+        /* 主容器 */
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            margin-top: 30px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        /* 顶部装饰条 */
+        .chat-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        /* 头部 */
+        .chat-header {
+            background: white;
+            padding: 25px 30px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chat-header h1 {
+            color: var(--accent-color);
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(255, 105, 180, 0.1);
+        }
+
+        .chat-header h1::before, .chat-header h1::after {
+            content: "🌸";
+            margin: 0 10px;
+        }
+
+        .chat-header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* 标签栏 */
+        .chat-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+        }
+
+        .tab-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            position: relative;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            font-size: 15px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab-item::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: var(--accent-gradient);
+            border-radius: 3px 3px 0 0;
+            transition: width 0.3s ease;
+        }
+
+        .tab-item.active {
+            color: var(--accent-color);
+        }
+
+        .tab-item.active::after {
+            width: 80%;
+        }
+
+        .tab-item:hover {
+            color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        /* 聊天内容区 */
+        .chat-content {
+            height: 450px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fef9fc;
+            scroll-behavior: smooth;
+        }
+
+        /* 滚动条美化 */
+        .chat-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-content::-webkit-scrollbar-track {
+            background: #fef0f5;
+            border-radius: 4px;
+        }
+
+        .chat-content::-webkit-scrollbar-thumb {
+            background: var(--accent-light);
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        .chat-content::-webkit-scrollbar-thumb:hover {
+            opacity: 1;
+            background: var(--accent-color);
+        }
+
+        /* 消息样式 */
+        .message {
+            margin-bottom: 20px;
+            max-width: 75%;
+            animation: fadeInUp 0.5s ease;
+            position: relative;
+        }
+
+        /* 用户消息 */
+        .user-message {
+            margin-left: auto;
+            background: var(--user-msg-bg);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 18px;
+            box-shadow: var(--cute-shadow);
+        }
+
+        .user-message::after {
+            content: "💖";
+            position: absolute;
+            bottom: -8px;
+            right: 10px;
+            font-size: 12px;
+        }
+
+        /* AI消息 */
+        .ai-message {
+            margin-right: auto;
+            background: var(--ai-msg-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px 18px 18px 4px;
+            padding: 12px 18px;
+            box-shadow: var(--cute-shadow);
+        }
+
+        .ai-message::before {
+            content: "🐱";
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+
+        /* 加载动画 */
+        .loading {
+            color: var(--accent-color);
+            font-style: italic;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .loading::before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+            top: 2px;
+            animation: spin 2s infinite linear;
+        }
+
+        /* 输入区域 */
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .memory-id-input {
+            display: none;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .memory-id-input.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .memory-id-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .memory-id-input label::before {
+            content: "🧠";
+            margin-right: 5px;
+        }
+
+        .memory-id-input input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 15px;
+            background: #fef9fc;
+            color: var(--text-primary);
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .memory-id-input input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            position: relative;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            font-size: 15px;
+            background: #fef9fc;
+            color: var(--text-primary);
+            resize: none;
+            height: 80px;
+            transition: var(--transition);
+            outline: none;
+            line-height: 1.5;
+        }
+
+        #messageInput:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.1);
+        }
+
+        #messageInput::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        #sendBtn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 15px;
+            box-shadow: var(--cute-shadow);
+        }
+
+        #sendBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.2);
+        }
+
+        #sendBtn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #sendBtn::after {
+            content: "💌";
+            font-size: 20px;
+        }
+
+        .btn-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .clear-btn {
+            padding: 10px 20px;
+            background: #fef0f5;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-color);
+            transition: var(--transition);
+        }
+
+        .clear-btn:hover {
+            background: var(--accent-light);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .clear-btn::before {
+            content: "🗑️";
+            margin-right: 5px;
+        }
+
+        .shortcut-tip {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 15px;
+            opacity: 0.8;
+        }
+
+        .shortcut-tip::before {
+            content: "💡";
+            margin-right: 5px;
+        }
+
+        /* 动画定义 */
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes typing {
+            0% { border-right: 2px solid var(--accent-color); }
+            50% { border-right: 2px solid transparent; }
+            100% { border-right: 2px solid var(--accent-color); }
+        }
+
+        /* 流式打字效果 */
+        .typing-effect {
+            border-right: 2px solid var(--accent-color);
+            padding-right: 4px;
+            animation: typing 1s infinite;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .chat-container {
+                margin-top: 20px;
+                border-radius: 15px;
+            }
+
+            .chat-header {
+                padding: 20px 15px;
+            }
+
+            .chat-header h1 {
+                font-size: 22px;
+            }
+
+            .chat-tabs {
+                padding: 0 10px;
+            }
+
+            .tab-item {
+                padding: 12px 10px;
+                font-size: 13px;
+            }
+
+            .chat-content {
+                height: 400px;
+                padding: 15px;
+            }
+
+            .chat-input-area {
+                padding: 15px;
+            }
+
+            #messageInput {
+                height: 70px;
+                padding: 12px;
+            }
+
+            #sendBtn {
+                width: 45px;
+                height: 45px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .chat-container {
+                border-radius: 10px;
+            }
+
+            .chat-content {
+                height: 350px;
+            }
+
+            .message {
+                max-width: 85%;
+            }
+
+            .decor1, .decor2 {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- 可爱装饰元素 -->
+<div class="decor decor1">🌸</div>
+<div class="decor decor2">💖</div>
+
+<div class="chat-container">
+    <!-- 头部 -->
+    <div class="chat-header">
+        <h1>可爱AI聊天助手</h1>
+        <p>💬 支持普通聊天、流式聊天、带记忆聊天哦～</p>
+    </div>
+
+    <!-- 功能标签切换 -->
+    <div class="chat-tabs">
+        <div class="tab-item active" data-tab="t1">普通聊天 💬</div>
+        <div class="tab-item" data-tab="t2">流式聊天 ⚡</div>
+        <div class="tab-item" data-tab="t3">记忆聊天 🧠</div>
+    </div>
+
+    <!-- 聊天内容展示区 -->
+    <div class="chat-content" id="chatContent"></div>
+
+    <!-- 输入区域 -->
+    <div class="chat-input-area">
+        <!-- 仅t3显示memoryId输入框 -->
+        <div class="memory-id-input" id="memoryIdInput">
+            <label for="memoryId">会话记忆ID（不同ID有不同的记忆哦～）</label>
+            <input type="number" id="memoryId" placeholder="请输入数字ID，比如1～" value="1">
+        </div>
+
+        <div class="input-row">
+            <textarea id="messageInput" placeholder="输入想和AI说的话，按 Ctrl+Enter 发送～"></textarea>
+            <button id="sendBtn"></button>
+        </div>
+
+        <div class="btn-row">
+            <button class="clear-btn" id="clearBtn">清空聊天记录</button>
+            <div class="shortcut-tip">快捷发送：Ctrl + Enter</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 全局变量
+    let currentTab = 't1'; // 当前选中的标签
+    const baseUrl = 'http://localhost:8080/test'; // 后端接口基础地址
+
+    // DOM 元素
+    const tabItems = document.querySelectorAll('.tab-item');
+    const chatContent = document.getElementById('chatContent');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const memoryIdInput = document.getElementById('memoryIdInput');
+    const memoryId = document.getElementById('memoryId');
+
+    // 初始化
+    init();
+
+    function init() {
+        // 标签切换事件
+        tabItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // 移除所有激活状态
+                tabItems.forEach(t => t.classList.remove('active'));
+                // 激活当前标签
+                this.classList.add('active');
+                // 更新当前标签
+                currentTab = this.dataset.tab;
+                // 显示/隐藏memoryId输入框
+                memoryIdInput.classList.toggle('show', currentTab === 't3');
+                // 平滑滚动到底部
+                chatContent.scrollTop = chatContent.scrollHeight;
+            });
+        });
+
+        // 发送按钮点击事件
+        sendBtn.addEventListener('click', sendMessage);
+
+        // 回车发送（textarea需要处理）
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // 阻止默认换行
+                sendMessage();
+            }
+        });
+
+        // 清空聊天记录
+        clearBtn.addEventListener('click', function() {
+            // 添加清空动画
+            chatContent.style.opacity = 0;
+            setTimeout(() => {
+                chatContent.innerHTML = '';
+                chatContent.style.opacity = 1;
+            }, 300);
+            // 可爱提示
+            addMessageToChat('ai', '✨ 聊天记录已经清空啦～');
+        });
+
+        // 页面加载完成后聚焦输入框
+        setTimeout(() => {
+            messageInput.focus();
+            // 欢迎语
+            addMessageToChat('ai', '🌸 你好呀～我是可爱的AI助手，有什么想聊的都可以问我哦～');
+        }, 500);
+    }
+
+    /**
+     * 发送消息
+     */
+    async function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) {
+            // 可爱的抖动提示
+            messageInput.style.transform = 'translateX(8px)';
+            setTimeout(() => {
+                messageInput.style.transform = 'translateX(-8px)';
+                setTimeout(() => {
+                    messageInput.style.transform = 'translateX(0)';
+                }, 80);
+            }, 80);
+            // 提示消息
+            addMessageToChat('ai', '😯 还没有输入内容哦～');
+            return;
+        }
+
+        // 禁用发送按钮
+        sendBtn.disabled = true;
+        // 添加发送动画
+        sendBtn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            sendBtn.style.transform = '';
+        }, 200);
+
+        // 添加用户消息到聊天窗口
+        addMessageToChat('user', message);
+        // 清空输入框
+        messageInput.value = '';
+
+        try {
+            // 根据不同标签调用不同接口
+            switch (currentTab) {
+                case 't1':
+                    await sendNormalMessage(message);
+                    break;
+                case 't2':
+                    await sendStreamingMessage(message);
+                    break;
+                case 't3':
+                    const mid = memoryId.value.trim();
+                    if (!mid) {
+                        // 抖动提示
+                        memoryId.style.transform = 'translateX(8px)';
+                        setTimeout(() => {
+                            memoryId.style.transform = 'translateX(-8px)';
+                            setTimeout(() => {
+                                memoryId.style.transform = 'translateX(0)';
+                            }, 80);
+                        }, 80);
+                        // 提示消息
+                        addMessageToChat('ai', '🧠 请先输入记忆ID哦～');
+                        sendBtn.disabled = false;
+                        return;
+                    }
+                    await sendStreamingMessageWithMemory(message, mid);
+                    break;
+            }
+        } catch (error) {
+            addMessageToChat('ai', `❌ 出错啦：${error.message}，再试一次好不好嘛～`);
+        } finally {
+            // 启用发送按钮
+            sendBtn.disabled = false;
+            // 滚动到底部
+            scrollToBottom();
+            // 重新聚焦输入框
+            messageInput.focus();
+        }
+    }
+
+    /**
+     * 调用普通聊天接口（t1）
+     */
+    async function sendNormalMessage(message) {
+        const loadingId = addLoadingMessage();
+
+        try {
+            const response = await fetch(`${baseUrl}/t1?msg=${encodeURIComponent(message)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const result = await response.text();
+            // 移除加载提示，添加AI回复
+            removeLoadingMessage(loadingId);
+            addMessageToChat('ai', result);
+        } catch (error) {
+            removeLoadingMessage(loadingId);
+            throw error;
+        }
+    }
+
+    /**
+     * 调用流式聊天接口（t2）
+     */
+    async function sendStreamingMessage(message) {
+        const loadingId = addLoadingMessage();
+
+        try {
+            const response = await fetch(`${baseUrl}/t2?msg=${encodeURIComponent(message)}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/stream;charset=utf-8'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // 移除加载提示
+            removeLoadingMessage(loadingId);
+            // 创建AI消息容器
+            const aiMessageId = `ai-${Date.now()}`;
+            addMessageToChat('ai', '', aiMessageId);
+            // 添加打字效果类
+            const aiMessageEl = document.getElementById(aiMessageId);
+            aiMessageEl.classList.add('typing-effect');
+
+            // 处理流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let result = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // 解码并拼接内容
+                const chunk = decoder.decode(value, { stream: true });
+                result += chunk;
+
+                // 更新AI消息内容（保留换行）
+                updateMessageContent(aiMessageId, result.replace(/\n/g, '<br>'));
+                // 滚动到底部
+                scrollToBottom();
+            }
+
+            // 移除打字效果
+            aiMessageEl.classList.remove('typing-effect');
+        } catch (error) {
+            removeLoadingMessage(loadingId);
+            throw error;
+        }
+    }
+
+    /**
+     * 调用带记忆的流式聊天接口（t3）
+     */
+    async function sendStreamingMessageWithMemory(message, memoryId) {
+        const loadingId = addLoadingMessage();
+
+        try {
+            const response = await fetch(`${baseUrl}/t3?memoryId=${memoryId}&msg=${encodeURIComponent(message)}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/stream;charset=utf-8'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // 移除加载提示
+            removeLoadingMessage(loadingId);
+            // 创建AI消息容器
+            const aiMessageId = `ai-${Date.now()}`;
+            addMessageToChat('ai', '', aiMessageId);
+            // 添加打字效果类
+            const aiMessageEl = document.getElementById(aiMessageId);
+            aiMessageEl.classList.add('typing-effect');
+
+            // 处理流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let result = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // 解码并拼接内容
+                const chunk = decoder.decode(value, { stream: true });
+                result += chunk;
+
+                // 更新AI消息内容（保留换行）
+                updateMessageContent(aiMessageId, result.replace(/\n/g, '<br>'));
+                // 滚动到底部
+                scrollToBottom();
+            }
+
+            // 移除打字效果
+            aiMessageEl.classList.remove('typing-effect');
+        } catch (error) {
+            removeLoadingMessage(loadingId);
+            throw error;
+        }
+    }
+
+    /**
+     * 添加消息到聊天窗口
+     */
+    function addMessageToChat(role, content, customId = '') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}-message`;
+        messageDiv.id = customId || `${role}-${Date.now()}`;
+        // 处理换行
+        messageDiv.innerHTML = content.replace(/\n/g, '<br>');
+        chatContent.appendChild(messageDiv);
+        scrollToBottom();
+        return messageDiv.id;
+    }
+
+    /**
+     * 添加加载中的提示
+     */
+    function addLoadingMessage() {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message ai-message loading';
+        loadingDiv.id = `loading-${Date.now()}`;
+        loadingDiv.textContent = 'AI正在努力思考中～✨';
+        chatContent.appendChild(loadingDiv);
+        scrollToBottom();
+        return loadingDiv.id;
+    }
+
+    /**
+     * 移除加载中的提示
+     */
+    function removeLoadingMessage(loadingId) {
+        const loadingDiv = document.getElementById(loadingId);
+        if (loadingDiv) {
+            // 淡出动画
+            loadingDiv.style.opacity = 0;
+            setTimeout(() => {
+                loadingDiv.remove();
+            }, 300);
+        }
+    }
+
+    /**
+     * 更新消息内容
+     */
+    function updateMessageContent(messageId, content) {
+        const messageDiv = document.getElementById(messageId);
+        if (messageDiv) {
+            messageDiv.innerHTML = content;
+        }
+    }
+
+    /**
+     * 平滑滚动到底部
+     */
+    function scrollToBottom() {
+        chatContent.scrollTo({
+            top: chatContent.scrollHeight,
+            behavior: 'smooth'
+        });
+    }
+</script>
+</body>
+</html>
